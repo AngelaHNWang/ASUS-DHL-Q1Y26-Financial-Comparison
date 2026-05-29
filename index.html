@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASUS & DHL Q1Y26 財務比較儀表板</title>
+  <meta name="description" content="ASUS、Dell、Lenovo、HP 四大 PC 廠商 2026 年第一季財務比較分析儀表板">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #080C14;
+      --bg-secondary: #0D1421;
+      --bg-card: rgba(255,255,255,0.04);
+      --bg-card-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --border-active: rgba(99,179,237,0.5);
+      --text-primary: #F0F4F8;
+      --text-secondary: #8C9BB5;
+      --text-muted: #4A5568;
+      --accent-blue: #4A9EF1;
+      --accent-cyan: #38BDF8;
+      --accent-purple: #A78BFA;
+      --green: #34D399;
+      --red: #F87171;
+      --yellow: #FBBF24;
+      --asus-color: #E2231A;
+      --dell-color: #F97316;
+      --lenovo-color: #94A3B8;
+      --hp-color: #3B82F6;
+      /* company colors for charts */
+      --asus-chart: rgba(226,35,26,0.85);
+      --dell-chart: rgba(249,115,22,0.85);
+      --lenovo-chart: rgba(148,163,184,0.85);
+      --hp-chart: rgba(59,130,246,0.85);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Microsoft JhengHei", sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(180deg, rgba(13,20,33,0.98) 0%, rgba(8,12,20,0.95) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .header-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+    .header-title span {
+      color: var(--accent-cyan);
+    }
+    .header-meta {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.05);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── Tab Nav ── */
+    .tab-nav {
+      display: flex;
+      gap: 2px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 10px 16px;
+      font-size: 0.78rem;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-btn:hover { color: var(--text-secondary); }
+    .tab-btn.active {
+      color: var(--accent-cyan);
+      border-bottom-color: var(--accent-cyan);
+    }
+    .tab-icon { font-size: 0.85rem; }
+
+    /* ── Main Content ── */
+    .main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 24px;
+    }
+
+    /* ── Section ── */
+    .section { display: none; animation: fadeIn 0.3s ease; }
+    .section.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+    .section-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+    }
+
+    /* ── Company Badge ── */
+    .company-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .badge-asus { background: rgba(226,35,26,0.15); color: var(--asus-color); border: 1px solid rgba(226,35,26,0.3); }
+    .badge-dell { background: rgba(249,115,22,0.15); color: #FB923C; border: 1px solid rgba(249,115,22,0.3); }
+    .badge-lenovo { background: rgba(148,163,184,0.12); color: #CBD5E1; border: 1px solid rgba(148,163,184,0.3); }
+    .badge-hp { background: rgba(59,130,246,0.15); color: #60A5FA; border: 1px solid rgba(59,130,246,0.3); }
+
+    /* ── Card ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.2s ease;
+    }
+    .card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255,255,255,0.12);
+    }
+    .card-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+    .card-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .card-sub {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* ── KPI Grid ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .kpi-grid { grid-template-columns: 1fr; } }
+
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .kpi-card.asus::before { background: linear-gradient(90deg, #E2231A, transparent); }
+    .kpi-card.dell::before { background: linear-gradient(90deg, #F97316, transparent); }
+    .kpi-card.lenovo::before { background: linear-gradient(90deg, #94A3B8, transparent); }
+    .kpi-card.hp::before { background: linear-gradient(90deg, #3B82F6, transparent); }
+    .kpi-card:hover { background: var(--bg-card-hover); border-color: rgba(255,255,255,0.12); transform: translateY(-2px); }
+
+    .kpi-company {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .kpi-company-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .kpi-period {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    .kpi-metric {
+      margin-bottom: 12px;
+    }
+    .kpi-metric-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 3px;
+    }
+    .kpi-metric-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .kpi-metric-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .yoy-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .yoy-pos { background: rgba(52,211,153,0.12); color: var(--green); }
+    .yoy-neg { background: rgba(248,113,113,0.12); color: var(--red); }
+    .yoy-na { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+
+    /* ── Grid Layouts ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    @media (max-width: 900px) {
+      .grid-2, .grid-3, .grid-2-1 { grid-template-columns: 1fr; }
+    }
+
+    /* ── Chart Container ── */
+    .chart-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .chart-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .chart-desc {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .chart-wrapper { position: relative; }
+
+    /* ── Traffic Light System ── */
+    .tl-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .tl-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .tl-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      margin-top: 3px;
+      flex-shrink: 0;
+      box-shadow: 0 0 8px currentColor;
+    }
+    .tl-green { background: var(--green); color: var(--green); }
+    .tl-yellow { background: var(--yellow); color: var(--yellow); }
+    .tl-red { background: var(--red); color: var(--red); }
+    .tl-content { flex: 1; }
+    .tl-company {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+    .tl-metric {
+      font-size: 0.87rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .tl-logic {
+      font-size: 0.76rem;
+      color: var(--text-secondary);
+    }
+    .tl-value {
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    /* ── Segment Bar ── */
+    .seg-bar-wrapper { margin-bottom: 16px; }
+    .seg-bar-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .seg-bar-label { font-size: 0.8rem; color: var(--text-secondary); }
+    .seg-bar-pct { font-size: 0.8rem; font-weight: 600; }
+    .seg-bar-track {
+      height: 8px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .seg-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 1s ease;
+    }
+
+    /* ── Peer Comparison Table ── */
+    .peer-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.83rem;
+    }
+    .peer-table th {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: right;
+    }
+    .peer-table th:first-child { text-align: left; }
+    .peer-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      text-align: right;
+      font-size: 0.85rem;
+    }
+    .peer-table td:first-child { text-align: left; font-weight: 500; }
+    .peer-table tr:last-child td { border-bottom: none; }
+    .peer-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .best { color: var(--green); font-weight: 700; }
+    .worst { color: var(--red); }
+
+    /* ── Summary Cards ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 800px) { .summary-grid { grid-template-columns: 1fr; } }
+    .summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .summary-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      opacity: 0.04;
+    }
+    .summary-card.asus::after { background: #E2231A; }
+    .summary-card.dell::after { background: #F97316; }
+    .summary-card.lenovo::after { background: #94A3B8; }
+    .summary-card.hp::after { background: #3B82F6; }
+    .summary-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .summary-card-name {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .summary-section-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      margin-top: 14px;
+    }
+    .summary-section-title:first-of-type { margin-top: 0; }
+    .summary-list {
+      list-style: none;
+      padding: 0;
+    }
+    .summary-list li {
+      font-size: 0.81rem;
+      color: var(--text-secondary);
+      padding: 5px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .summary-list li::before {
+      content: '›';
+      color: var(--accent-cyan);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .verdict-box {
+      background: linear-gradient(135deg, rgba(74,158,241,0.08) 0%, rgba(56,189,248,0.05) 100%);
+      border: 1px solid rgba(74,158,241,0.2);
+      border-radius: 10px;
+      padding: 18px;
+      margin-top: 24px;
+    }
+    .verdict-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent-cyan);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .verdict-text {
+      font-size: 0.87rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+    .verdict-highlight {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+    /* ── NA Tag ── */
+    .na { color: var(--text-muted); font-size: 0.78rem; font-style: italic; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    /* ── Currency note ── */
+    .currency-note {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 0.83rem;
+    }
+    .data-row:last-child { border-bottom: none; }
+    .data-row-label { color: var(--text-secondary); }
+    .data-row-value { font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-top">
+    <div class="header-title">
+      <span>ASUS</span> & DHL — Q1 Y26 財務比較儀表板
+    </div>
+    <div class="header-meta">四大 PC 廠商 ｜ 2026 Q1 財報</div>
+  </div>
+  <nav class="tab-nav" role="tablist" aria-label="主要導覽">
+    <button class="tab-btn active" onclick="showTab('overview',this)" id="tab-overview" role="tab">
+      <span class="tab-icon">◉</span> 高階總覽
+    </button>
+    <button class="tab-btn" onclick="showTab('revenue',this)" id="tab-revenue" role="tab">
+      <span class="tab-icon">↗</span> 營收與獲利
+    </button>
+    <button class="tab-btn" onclick="showTab('segment',this)" id="tab-segment" role="tab">
+      <span class="tab-icon">◴</span> 業務分部
+    </button>
+    <button class="tab-btn" onclick="showTab('cashflow',this)" id="tab-cashflow" role="tab">
+      <span class="tab-icon">＄</span> 現金流與健康
+    </button>
+    <button class="tab-btn" onclick="showTab('peer',this)" id="tab-peer" role="tab">
+      <span class="tab-icon">◎</span> 同業比較
+    </button>
+    <button class="tab-btn" onclick="showTab('risks',this)" id="tab-risks" role="tab">
+      <span class="tab-icon">⚠</span> 紅旗警示
+    </button>
+    <button class="tab-btn" onclick="showTab('summary',this)" id="tab-summary" role="tab">
+      <span class="tab-icon">📄</span> 總結
+    </button>
+  </nav>
+</header>
+
+<main class="main">
+
+  <!-- ══════════════════════════════════════════
+       第一區：高階總覽
+  ══════════════════════════════════════════ -->
+  <section class="section active" id="sec-overview">
+    <div class="section-title">高階總覽</div>
+    <div class="section-subtitle">四家公司最新季度核心 KPI 一覽 ｜ 數字旁顯示 YoY 年增率</div>
+
+    <div class="currency-note">
+      ℹ️ <strong>幣別說明：</strong>ASUS 財報以新台幣（NT$）計算；Dell、Lenovo、HP 以美元（US$）計算。各公司財年不同，以最近揭露之季度為準。
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <!-- ASUS -->
+      <div class="kpi-card asus">
+        <div class="kpi-company">
+          <span class="company-badge badge-asus">ASUS</span>
+          <span class="kpi-period">2026 Q1 (1–3月)</span>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">總營收</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">NT$1,941億</div>
+            <span class="yoy-badge yoy-pos">▲ +44%</span>
+          </div>
+          <div class="card-sub">創歷史新高</div>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">淨利</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">NT$98億</div>
+            <span class="yoy-badge yoy-neg">▼ -23%</span>
+          </div>
+          <div class="card-sub">EPS NT$13.2</div>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">營業利益率</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">5.4%</div>
+            <span class="yoy-badge yoy-neg">▼ -3.1pts</span>
+          </div>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">毛利率</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">13.8%</div>
+            <span class="yoy-badge yoy-neg">▼ -1.7pts</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dell -->
+      <div class="kpi-card dell">
+        <div class="kpi-company">
+          <span class="company-badge badge-dell">DELL</span>
+          <span class="kpi-period">FY27 Q1 (2/1–5/1)</span>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">總營收</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">US$438億</div>
+            <span class="yoy-badge yoy-pos">▲ +88%</span>
+          </div>
+          <div class="card-sub">歷史最高紀錄</div>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">淨利 (GAAP)</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">US$34億</div>
+            <span class="yoy-badge yoy-pos">▲ +256%</span>
+          </div>
+          <div class="card-sub">EPS $5.24 （GAAP）</div>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">營業利益率 (GAAP)</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">8.3%</div>
+            <span class="yoy-badge yoy-pos">▲ +3.3pts</span>
+          </div>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">毛利率</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">17.8%</div>
+            <span class="yoy-badge yoy-neg">▼ -3.3pts</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lenovo -->
+      <div class="kpi-card lenovo">
+        <div class="kpi-company">
+          <span class="company-badge badge-lenovo">LENOVO</span>
+          <span class="kpi-period">FY25/26 Q4 (1–3月)</span>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">總營收</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">US$216億</div>
+            <span class="yoy-badge yoy-pos">▲ +27%</span>
+          </div>
+          <div class="card-sub">五年最高 YoY 成長率</div>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">淨利</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">US$5.2億</div>
+            <span class="yoy-badge yoy-pos">▲ +479%</span>
+          </div>
+          <div class="card-sub">EPS US 4.32¢</div>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">營業利益率</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">4.1%</div>
+            <span class="yoy-badge yoy-pos">▲ +2.1pts</span>
+          </div>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">毛利率</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">16.4%</div>
+            <span class="yoy-badge yoy-na">持平 0pts</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- HP -->
+      <div class="kpi-card hp">
+        <div class="kpi-company">
+          <span class="company-badge badge-hp">HP Inc.</span>
+          <span class="kpi-period">FY26 Q2 (2/1–4/30)</span>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">總營收</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">US$144億</div>
+            <span class="yoy-badge yoy-pos">▲ +9.0%</span>
+          </div>
+          <div class="card-sub">EPS 優於財測</div>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">淨利 (GAAP)</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">US$4.5億</div>
+            <span class="yoy-badge yoy-pos">▲ +11%</span>
+          </div>
+          <div class="card-sub">EPS $0.49 （GAAP）</div>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">營業利益率 (GAAP)</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">4.2% (GAAP)</div>
+            <span class="yoy-badge yoy-neg">▼ -0.7pts</span>
+          </div>
+          <div class="card-sub">參考：non-GAAP 7.5% (+0.2pts)</div>
+        </div>
+        <div class="kpi-metric">
+          <div class="kpi-metric-label">毛利率</div>
+          <div class="kpi-metric-row">
+            <div class="kpi-metric-value">20.9%</div>
+            <span class="yoy-badge yoy-pos">▲ 相對最高</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick comparison chart -->
+    <div class="chart-container">
+      <div class="chart-title">四家公司核心利潤率比較（本季）</div>
+      <div class="chart-desc">毛利率 / 營業利益率 / 淨利率 橫向對比（均為本季 GAAP 數字）</div>
+      <div class="chart-wrapper" style="max-height:320px;">
+        <canvas id="overviewMarginChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════
+       第二區：營收與獲利
+  ══════════════════════════════════════════ -->
+  <section class="section" id="sec-revenue">
+    <div class="section-title">營收與獲利</div>
+    <div class="section-subtitle">各公司營收規模、毛利率與營業利益率深度分析</div>
+
+    <div class="chart-container">
+      <div class="chart-title">季度營收規模比較（折算美元）</div>
+      <div class="chart-desc">ASUS 以 NT$1=USD 0.031 換算；Dell 規模因 AI Server 爆發遙遙領先</div>
+      <div class="chart-wrapper" style="max-height:300px;">
+        <canvas id="revenueBarChart"></canvas>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="chart-container" style="margin-bottom:0">
+        <div class="chart-title">毛利率比較</div>
+        <div class="chart-desc">HP 毛利率最高（20.9%），ASUS 最低（13.8%）</div>
+        <div class="chart-wrapper" style="max-height:260px;">
+          <canvas id="grossMarginChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-container" style="margin-bottom:0">
+        <div class="chart-title">營業利益率比較（GAAP 為主）</div>
+        <div class="chart-desc">Dell GAAP 8.3% 最高；ASUS 5.4%；HP GAAP 4.2%（non-GAAP 第二區另詳）</div>
+        <div class="chart-wrapper" style="max-height:260px;">
+          <canvas id="opMarginChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-title" style="font-size:1rem;margin-bottom:16px;">GAAP vs Non-GAAP 差距分析</div>
+    <div class="grid-2">
+      <!-- Dell -->
+      <div class="card">
+        <div class="kpi-company"><span class="company-badge badge-dell">DELL</span></div>
+        <div class="data-row">
+          <span class="data-row-label">GAAP 營業利益率</span>
+          <span class="data-row-value">8.3%</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-label">Non-GAAP 營業利益率</span>
+          <span class="data-row-value" style="color:var(--green)">9.7%</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-label">差距（主係無形資產攤銷、股權補償）</span>
+          <span class="data-row-value" style="color:var(--yellow)">+1.4pts</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-label">GAAP 淨利</span>
+          <span class="data-row-value">US$34.4億</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-label">Non-GAAP 淨利</span>
+          <span class="data-row-value" style="color:var(--green)">US$31.9億</span>
+        </div>
+        <div style="margin-top:10px;font-size:0.76rem;color:var(--text-muted)">⚠ 本季 GAAP 淨利高於 Non-GAAP，因公允價值調整（股權投資）貢獻 US$6.31億</div>
+      </div>
+      <!-- HP -->
+      <div class="card">
+        <div class="kpi-company"><span class="company-badge badge-hp">HP Inc.</span></div>
+        <div class="data-row">
+          <span class="data-row-label">GAAP 營業利益率</span>
+          <span class="data-row-value" style="color:var(--red)">4.2%</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-label">Non-GAAP 營業利益率</span>
+          <span class="data-row-value" style="color:var(--green)">7.5%</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-label">差距（重組費用 US$3.65億為主）</span>
+          <span class="data-row-value" style="color:var(--red)">+3.3pts</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-label">GAAP 淨利</span>
+          <span class="data-row-value">US$4.5億</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-label">Non-GAAP 淨利</span>
+          <span class="data-row-value" style="color:var(--green)">US$7.9億</span>
+        </div>
+        <div style="margin-top:10px;font-size:0.76rem;color:var(--text-muted)">⚠ GAAP vs Non-GAAP 差距達 3.3pts，主因本季重組費用 US$3.65億，需留意是否常態化</div>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:16px">
+      <div class="card">
+        <div class="kpi-company"><span class="company-badge badge-asus">ASUS</span></div>
+        <div class="data-row">
+          <span class="data-row-label">GAAP 營業利益率</span><span class="data-row-value">5.4%</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-label">Non-GAAP 差距</span><span class="na">N/A - 報表未披露此數據</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-label">稅前淨利</span><span class="data-row-value">NT$122.6億</span>
+        </div>
+        <div style="margin-top:10px;font-size:0.76rem;color:var(--text-muted)">ASUS 台灣財報以 GAAP 為主，無另行揭露 Non-GAAP 數字</div>
+      </div>
+      <div class="card">
+        <div class="kpi-company"><span class="company-badge badge-lenovo">LENOVO</span></div>
+        <div class="data-row">
+          <span class="data-row-label">HKFRS 營業利益率</span><span class="data-row-value">4.1%</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-label">Non-HKFRS 調整後</span><span class="data-row-value" style="color:var(--green)">3.9%</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-label">差距（重組、可換股債券利息）</span><span class="data-row-value" style="color:var(--yellow)">-0.2pts</span>
+        </div>
+        <div style="margin-top:10px;font-size:0.76rem;color:var(--text-muted)">GAAP/Non-GAAP 差距合理，無異常一次性費用</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════
+       第三區：業務分部
+  ══════════════════════════════════════════ -->
+  <section class="section" id="sec-segment">
+    <div class="section-title">業務分部分析</div>
+    <div class="section-subtitle">各核心業務營收貢獻與成長動能拆解</div>
+
+    <div class="grid-2">
+      <!-- ASUS -->
+      <div class="card">
+        <div class="kpi-company" style="margin-bottom:18px"><span class="company-badge badge-asus">ASUS</span><span style="font-size:0.8rem;color:var(--text-secondary);margin-left:8px">NT$1,941億 ｜ 依市場/用途分類</span></div>
+
+        <div class="seg-bar-wrapper">
+          <div class="seg-bar-header">
+            <span class="seg-bar-label">🎮 電競市場（Gamer）</span>
+            <span class="seg-bar-pct" style="color:var(--asus-color)">36% ｜ YoY +20%</span>
+          </div>
+          <div class="seg-bar-track"><div class="seg-bar-fill" style="width:36%;background:var(--asus-color)"></div></div>
+        </div>
+        <div class="seg-bar-wrapper">
+          <div class="seg-bar-header">
+            <span class="seg-bar-label">🏢 企業市場（Enterprise，含伺服器）</span>
+            <span class="seg-bar-pct" style="color:#38BDF8">37% ｜ YoY +190%</span>
+          </div>
+          <div class="seg-bar-track"><div class="seg-bar-fill" style="width:37%;background:#38BDF8"></div></div>
+        </div>
+        <div class="seg-bar-wrapper">
+          <div class="seg-bar-header">
+            <span class="seg-bar-label">🏠 消費市場（Consumer）</span>
+            <span class="seg-bar-pct" style="color:#7DD3FC">27% ｜ YoY +6%</span>
+          </div>
+          <div class="seg-bar-track"><div class="seg-bar-fill" style="width:27%;background:#7DD3FC"></div></div>
+        </div>
+
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div class="kpi-metric-label" style="margin-bottom:8px">產品線（依 IR 分類）</div>
+          <div class="data-row">
+            <span class="data-row-label">System Products（系統產品）</span>
+            <span class="data-row-value">46%</span>
+          </div>
+          <div class="data-row">
+            <span class="data-row-label">IS（含伺服器）</span>
+            <span class="data-row-value">28%</span>
+          </div>
+          <div class="data-row">
+            <span class="data-row-label">Open Platform</span>
+            <span class="data-row-value">26%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dell -->
+      <div class="card">
+        <div class="kpi-company" style="margin-bottom:18px"><span class="company-badge badge-dell">DELL</span><span style="font-size:0.8rem;color:var(--text-secondary);margin-left:8px">US$438億 ｜ ISG vs CSG</span></div>
+
+        <div class="seg-bar-wrapper">
+          <div class="seg-bar-header">
+            <span class="seg-bar-label">🖥️ ISG（基礎設施解決方案）</span>
+            <span class="seg-bar-pct" style="color:var(--accent-cyan)">66% ｜ YoY +181%</span>
+          </div>
+          <div class="seg-bar-track"><div class="seg-bar-fill" style="width:66%;background:var(--accent-cyan)"></div></div>
+        </div>
+        <div class="seg-bar-wrapper">
+          <div class="seg-bar-header">
+            <span class="seg-bar-label">💻 CSG（用戶端解決方案，含 PC）</span>
+            <span class="seg-bar-pct" style="color:#63B3F0">34% ｜ YoY +17%</span>
+          </div>
+          <div class="seg-bar-track"><div class="seg-bar-fill" style="width:34%;background:#63B3F0"></div></div>
+        </div>
+
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div class="kpi-metric-label" style="margin-bottom:8px">ISG 細項（US$290億）</div>
+          <div class="data-row">
+            <span class="data-row-label">AI 優化伺服器</span>
+            <span class="data-row-value" style="color:var(--green)">US$161億 ｜ +757%</span>
+          </div>
+          <div class="data-row">
+            <span class="data-row-label">傳統伺服器及網路</span>
+            <span class="data-row-value">US$85億 ｜ +92%</span>
+          </div>
+          <div class="data-row">
+            <span class="data-row-label">儲存設備（Storage）</span>
+            <span class="data-row-value">US$43億 ｜ +8%</span>
+          </div>
+          <div class="kpi-metric-label" style="margin-bottom:8px;margin-top:12px">CSG 細項（US$146億）</div>
+          <div class="data-row">
+            <span class="data-row-label">商用 PC</span>
+            <span class="data-row-value">US$130億 ｜ +18%</span>
+          </div>
+          <div class="data-row">
+            <span class="data-row-label">消費 PC</span>
+            <span class="data-row-value">US$16億 ｜ +9%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lenovo -->
+      <div class="card">
+        <div class="kpi-company" style="margin-bottom:18px"><span class="company-badge badge-lenovo">LENOVO</span><span style="font-size:0.8rem;color:var(--text-secondary);margin-left:8px">US$216億 ｜ IDG/ISG/SSG</span></div>
+
+        <div class="seg-bar-wrapper">
+          <div class="seg-bar-header">
+            <span class="seg-bar-label">📱 IDG（智能設備，含 PC/手機）</span>
+            <span class="seg-bar-pct" style="color:#F87171">68% ｜ YoY +24%</span>
+          </div>
+          <div class="seg-bar-track"><div class="seg-bar-fill" style="width:68%;background:#F87171"></div></div>
+        </div>
+        <div class="seg-bar-wrapper">
+          <div class="seg-bar-header">
+            <span class="seg-bar-label">🖥️ ISG（基礎設施解決方案）</span>
+            <span class="seg-bar-pct" style="color:#FCA5A5">26% ｜ YoY +37%</span>
+          </div>
+          <div class="seg-bar-track"><div class="seg-bar-fill" style="width:26%;background:#FCA5A5"></div></div>
+        </div>
+        <div class="seg-bar-wrapper">
+          <div class="seg-bar-header">
+            <span class="seg-bar-label">⚙️ SSG（方案及服務）</span>
+            <span class="seg-bar-pct" style="color:#FECACA">12% ｜ YoY +19%</span>
+          </div>
+          <div class="seg-bar-track"><div class="seg-bar-fill" style="width:12%;background:#FECACA"></div></div>
+        </div>
+
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div class="data-row">
+            <span class="data-row-label">IDG 營業利益率</span>
+            <span class="data-row-value">6.9%</span>
+          </div>
+          <div class="data-row">
+            <span class="data-row-label">ISG 營業利益率（轉虧為盈）</span>
+            <span class="data-row-value" style="color:var(--green)">3.6% ✓</span>
+          </div>
+          <div class="data-row">
+            <span class="data-row-label">SSG 營業利益率（高附加值）</span>
+            <span class="data-row-value" style="color:var(--green)">22.4%</span>
+          </div>
+          <div class="data-row">
+            <span class="data-row-label">AI 相關營收 YoY</span>
+            <span class="data-row-value" style="color:var(--green)">+84% ｜ 佔比 38%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- HP -->
+      <div class="card">
+        <div class="kpi-company" style="margin-bottom:18px"><span class="company-badge badge-hp">HP Inc.</span><span style="font-size:0.8rem;color:var(--text-secondary);margin-left:8px">US$144億 ｜ PS vs Printing</span></div>
+
+        <div class="seg-bar-wrapper">
+          <div class="seg-bar-header">
+            <span class="seg-bar-label">💻 個人系統（Personal Systems）</span>
+            <span class="seg-bar-pct" style="color:var(--hp-color)">71% ｜ YoY +13%</span>
+          </div>
+          <div class="seg-bar-track"><div class="seg-bar-fill" style="width:71%;background:var(--hp-color)"></div></div>
+        </div>
+        <div class="seg-bar-wrapper">
+          <div class="seg-bar-header">
+            <span class="seg-bar-label">🖨️ 列印（Printing）</span>
+            <span class="seg-bar-pct" style="color:#7DD3FC">29% ｜ YoY 持平 0%</span>
+          </div>
+          <div class="seg-bar-track"><div class="seg-bar-fill" style="width:29%;background:#7DD3FC"></div></div>
+        </div>
+
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div class="kpi-metric-label" style="margin-bottom:8px">Personal Systems 細項（US$102億）</div>
+          <div class="data-row">
+            <span class="data-row-label">商用 PC</span>
+            <span class="data-row-value">US$77億 ｜ +14%</span>
+          </div>
+          <div class="data-row">
+            <span class="data-row-label">消費 PC</span>
+            <span class="data-row-value">US$25億 ｜ +10%</span>
+          </div>
+          <div class="data-row">
+            <span class="data-row-label">PS 營業利益率</span>
+            <span class="data-row-value">5.2% (+0.7pts)</span>
+          </div>
+          <div class="kpi-metric-label" style="margin-bottom:8px;margin-top:12px">Printing 細項（US$42億）</div>
+          <div class="data-row">
+            <span class="data-row-label">耗材（Supplies，高毛利）</span>
+            <span class="data-row-value">US$28億 ｜ +1%</span>
+          </div>
+          <div class="data-row">
+            <span class="data-row-label">Printing 營業利益率</span>
+            <span class="data-row-value" style="color:var(--green)">18.3%</span>
+          </div>
+          <div class="data-row">
+            <span class="data-row-label">AI PC 佔出貨量</span>
+            <span class="data-row-value" style="color:var(--green)">44% (季增9pts)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-container" style="margin-top:20px">
+      <div class="chart-title">業務分部營收貢獻度（各公司）</div>
+      <div class="chart-desc">各分部佔本季總營收百分比</div>
+      <div class="chart-wrapper" style="max-height:280px;">
+        <canvas id="segmentChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════
+       第四區：現金流與財務健康
+  ══════════════════════════════════════════ -->
+  <section class="section" id="sec-cashflow">
+    <div class="section-title">現金流與財務健康</div>
+    <div class="section-subtitle">營運現金流、自由現金流與盈餘品質紅黃綠燈系統</div>
+
+    <div class="chart-container">
+      <div class="chart-title">OCF 與 FCF 比較（折算美元）</div>
+      <div class="chart-desc">Dell 現金流能力最強，Lenovo FCF 本季為負</div>
+      <div class="chart-wrapper" style="max-height:280px;">
+        <canvas id="cashflowChart"></canvas>
+      </div>
+    </div>
+
+    <div class="section-title" style="font-size:0.95rem;margin-bottom:14px">🚦 盈餘品質：OCF / Net Income 比率</div>
+    <div class="tl-grid" style="grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px">
+      <div class="tl-item">
+        <div class="tl-dot tl-green"></div>
+        <div class="tl-content">
+          <div class="tl-company">DELL</div>
+          <div class="tl-metric">OCF / Net Income = 1.19x</div>
+          <div class="tl-logic">✅ OCF（US$40.8億）遠高於淨利（US$34.4億），盈餘品質優良，現金轉化效率高</div>
+        </div>
+        <div class="tl-value" style="color:var(--green)">1.19x</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-green"></div>
+        <div class="tl-content">
+          <div class="tl-company">HP Inc.</div>
+          <div class="tl-metric">OCF / Net Income = 2.06x</div>
+          <div class="tl-logic">✅ OCF（US$9.3億）大幅超越淨利（US$4.5億），重組費用為非現金性質；現金生成能力強勁</div>
+        </div>
+        <div class="tl-value" style="color:var(--green)">2.06x</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-yellow"></div>
+        <div class="tl-content">
+          <div class="tl-company">ASUS</div>
+          <div class="tl-metric">盈餘品質：待進一步觀察</div>
+          <div class="tl-logic">⚠ 營運現金流 NT$31億（US$0.96億），相較淨利 NT$98億明顯偏低（比率約 0.32x），顯示存貨大幅增加（+71% YoY）吸收大量現金</div>
+        </div>
+        <div class="tl-value" style="color:var(--yellow)">~0.32x</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-yellow"></div>
+        <div class="tl-content">
+          <div class="tl-company">LENOVO</div>
+          <div class="tl-metric">OCF / Net Income = 0.60x</div>
+          <div class="tl-logic">⚠ OCF（US$3.1億）低於淨利（US$5.2億），FCF 為負（-US$1.8億）。雖低於 1.0x 警戒線，但逾期應收款下降，出貨時點因素為主</div>
+        </div>
+        <div class="tl-value" style="color:var(--yellow)">0.60x</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="font-size:0.95rem;margin-bottom:14px">🚦 GAAP vs Non-GAAP 差距合理性</div>
+    <div class="tl-grid" style="grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px">
+      <div class="tl-item">
+        <div class="tl-dot tl-green"></div>
+        <div class="tl-content">
+          <div class="tl-company">DELL</div>
+          <div class="tl-metric">差距 +1.4pts（合理）</div>
+          <div class="tl-logic">✅ 調整項目以無形資產攤銷、股權補償為主，均為已知、非現金性費用，差距合理可接受</div>
+        </div>
+        <div class="tl-value" style="color:var(--green)">合理</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-yellow"></div>
+        <div class="tl-content">
+          <div class="tl-company">HP Inc.</div>
+          <div class="tl-metric">差距 +3.3pts（偏大，需持續追蹤）</div>
+          <div class="tl-logic">⚠ 本季重組費用 US$3.65億為主要差距來源。重組費用若連續多季出現，需審視是否已成常態化成本</div>
+        </div>
+        <div class="tl-value" style="color:var(--yellow)">需觀察</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-green"></div>
+        <div class="tl-content">
+          <div class="tl-company">LENOVO</div>
+          <div class="tl-metric">差距 -0.2pts（調整後反略低）</div>
+          <div class="tl-logic">✅ HKFRS 與 Non-HKFRS 差距極小，調整項目為可換股債券利息等標準項目，無異常</div>
+        </div>
+        <div class="tl-value" style="color:var(--green)">合理</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-green"></div>
+        <div class="tl-content">
+          <div class="tl-company">ASUS</div>
+          <div class="tl-metric">N/A（台灣財報不揭露 Non-GAAP）</div>
+          <div class="tl-logic">✅ 台灣上市公司以 IFRS 為準，毋需另行調整，報表透明度較高</div>
+        </div>
+        <div class="tl-value" style="color:var(--text-muted)">N/A</div>
+      </div>
+    </div>
+
+    <!-- Balance Sheet Health -->
+    <div class="section-title" style="font-size:0.95rem;margin-bottom:14px">資產負債表健康度</div>
+    <div class="grid-2">
+      <div class="card">
+        <div style="font-size:0.8rem;font-weight:600;margin-bottom:12px">流動性與槓桿</div>
+        <table class="peer-table">
+          <thead><tr><th>公司</th><th>現金</th><th>負債/股權</th></tr></thead>
+          <tbody>
+            <tr><td><span class="company-badge badge-asus">ASUS</span></td><td>NT$428億</td><td>正值股東權益</td></tr>
+            <tr><td><span class="company-badge badge-dell">DELL</span></td><td class="best">US$116億</td><td style="color:var(--red)">負股東權益*</td></tr>
+            <tr><td><span class="company-badge badge-lenovo">LENOVO</span></td><td>US$50億</td><td style="color:var(--yellow)">負債比 85%</td></tr>
+            <tr><td><span class="company-badge badge-hp">HP Inc.</span></td><td>US$37億</td><td style="color:var(--red)">負股東權益*</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:10px">* Dell/HP 負股東權益係歷史私有化槓桿收購結構，非體質惡化，屬財務工程結果</div>
+      </div>
+      <div class="card">
+        <div style="font-size:0.8rem;font-weight:600;margin-bottom:12px">營運天數指標（本季）</div>
+        <table class="peer-table">
+          <thead><tr><th>公司</th><th>存貨天數</th><th>應收天數</th><th>CCC</th></tr></thead>
+          <tbody>
+            <tr><td><span class="company-badge badge-asus">ASUS</span></td><td style="color:var(--red)">122天</td><td>64天</td><td>116天</td></tr>
+            <tr><td><span class="company-badge badge-dell">DELL</span></td><td class="best">32天</td><td>45天</td><td class="best">-22天*</td></tr>
+            <tr><td><span class="company-badge badge-lenovo">LENOVO</span></td><td>52天</td><td>58天</td><td style="color:var(--yellow)">~20天</td></tr>
+            <tr><td><span class="company-badge badge-hp">HP Inc.</span></td><td style="color:var(--yellow)">73天</td><td>38天</td><td style="color:var(--red)">-40天*</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:10px">* 負 CCC 代表應付帳款天數極長，實質以供應商資金運作</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════
+       第五區：同業比較
+  ══════════════════════════════════════════ -->
+  <section class="section" id="sec-peer">
+    <div class="section-title">同業比較</div>
+    <div class="section-subtitle">四大 PC 廠商關鍵財務指標橫向對比</div>
+
+    <div class="chart-container">
+      <div class="chart-title">關鍵利潤率雷達圖比較</div>
+      <div class="chart-desc">毛利率、營業利益率（non-GAAP）、淨利率、FCF 效率綜合評估</div>
+      <div class="chart-wrapper" style="max-height:380px;">
+        <canvas id="radarChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <div class="chart-title">YoY 營收成長率比較（%）</div>
+      <div class="chart-desc">Dell 因 AI Server 爆發成長 88%，ASUS 以 44% 緊追</div>
+      <div class="chart-wrapper" style="max-height:260px;">
+        <canvas id="yoyGrowthChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="chart-title" style="margin-bottom:16px">關鍵財務指標綜合對比表</div>
+      <div style="overflow-x:auto;">
+        <table class="peer-table">
+          <thead>
+            <tr>
+              <th>指標</th>
+              <th>ASUS (Q1'26)</th>
+              <th>Dell (Q1 FY27)</th>
+              <th>Lenovo (Q4 FY26)</th>
+              <th>HP Inc. (Q2 FY26)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>季度營收（US$ 估算）</td><td>~US$60億</td><td class="best">US$438億</td><td>US$216億</td><td>US$144億</td></tr>
+            <tr><td>YoY 營收成長率</td><td>+44%</td><td class="best">+88%</td><td>+27%</td><td>+9%</td></tr>
+            <tr><td>毛利率</td><td class="worst">13.8%</td><td>17.8%</td><td>16.4%</td><td class="best">20.9%</td></tr>
+            <tr><td>營業利益率 (GAAP)</td><td>5.4%</td><td class="best">8.3%</td><td>4.1%</td><td class="worst">4.2%</td></tr>
+            <tr><td>Non-GAAP 營業利益率（參考）</td><td class="na">N/A</td><td>9.7%</td><td>3.9%</td><td>7.5%</td></tr>
+            <tr><td>淨利率 (GAAP)</td><td>~5.0%</td><td class="best">7.8%</td><td>2.4%</td><td>3.1%</td></tr>
+            <tr><td>OCF（US$）</td><td>~US$0.96億</td><td class="best">US$40.8億</td><td>US$3.1億</td><td>US$9.3億</td></tr>
+            <tr><td>FCF（US$）</td><td class="na">N/A 未披露</td><td class="best">US$31.2億</td><td style="color:var(--red)">-US$1.8億</td><td>US$7.8億</td></tr>
+            <tr><td>存貨天數</td><td style="color:var(--red)">122天</td><td class="best">32天</td><td>52天</td><td style="color:var(--yellow)">73天</td></tr>
+            <tr><td>YoY 淨利成長</td><td style="color:var(--red)">-23%</td><td class="best">+256%</td><td class="best">+479%</td><td>+11%</td></tr>
+            <tr><td>AI 相關業務佔比</td><td>37%(Enterprise)</td><td class="best">ISG 佔 66%</td><td>38%</td><td>44% AI PC</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════
+       第六區：紅旗警示
+  ══════════════════════════════════════════ -->
+  <section class="section" id="sec-risks">
+    <div class="section-title">紅旗警示 <span style="font-size:0.8rem;color:var(--text-muted);font-weight:400">Red Flags & Risks</span></div>
+    <div class="section-subtitle">財務潛在風險紅黃綠燈系統 — 每項均附判斷邏輯說明</div>
+
+    <div class="section-title" style="font-size:0.95rem;margin-bottom:14px">🏭 存貨健康度：存貨增長率 vs 營收增長率</div>
+    <div class="tl-grid" style="gap:12px;margin-bottom:28px">
+      <div class="tl-item">
+        <div class="tl-dot tl-red"></div>
+        <div class="tl-content">
+          <div class="tl-company">ASUS</div>
+          <div class="tl-metric">存貨 YoY +71%，營收 YoY +44% → 存貨增長速度遠超營收</div>
+          <div class="tl-logic">🔴 警示：存貨激增 71%（NT$2,471億）遠超營收成長 44%，存貨天數高達 122 天。可能反映 AI Server 備料增加，但若需求放緩恐有呆滯風險，後續出清壓力需密切追蹤</div>
+        </div>
+        <div class="tl-value" style="color:var(--red)">+71% vs +44%</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-yellow"></div>
+        <div class="tl-content">
+          <div class="tl-company">DELL</div>
+          <div class="tl-metric">存貨 QoQ +44%（季增），庫存天數 32 天（+2.4天 QoQ）</div>
+          <div class="tl-logic">🟡 留意：存貨絕對水位上升（US$105→150億），主係 AI Server 備貨需求旺盛，但 32 天存貨天數屬業界最低；YoY 比較因基期過低（原始數字需全年比較）</div>
+        </div>
+        <div class="tl-value" style="color:var(--yellow)">+44% QoQ</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-yellow"></div>
+        <div class="tl-content">
+          <div class="tl-company">LENOVO</div>
+          <div class="tl-metric">存貨 YoY +48%（US$79億→US$117億），存貨天數 52 天（+10天 QoQ）</div>
+          <div class="tl-logic">🟡 留意：存貨增長推測係 Server 提前備料，存貨天數增加 10 天。逾期應收帳款金額下降，屬結構性備料而非呆滯，需後續確認需求匹配</div>
+        </div>
+        <div class="tl-value" style="color:var(--yellow)">+48% YoY</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-yellow"></div>
+        <div class="tl-content">
+          <div class="tl-company">HP Inc.</div>
+          <div class="tl-metric">存貨 YoY +8%（US$85億→US$92億），存貨天數 73 天（+5天 QoQ）</div>
+          <div class="tl-logic">🟡 留意：存貨增長 8% 與營收增長 9% 相近，基本吻合。然 73 天存貨天數偏高，且 HP 仍面臨傳統硬體出貨量下滑，需留意消費 PC 庫存去化</div>
+        </div>
+        <div class="tl-value" style="color:var(--yellow)">+8% vs +9%</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="font-size:0.95rem;margin-bottom:14px">📊 應收帳款健康度：AR 增長率 vs 營收增長率</div>
+    <div class="tl-grid" style="gap:12px;margin-bottom:28px">
+      <div class="tl-item">
+        <div class="tl-dot tl-yellow"></div>
+        <div class="tl-content">
+          <div class="tl-company">ASUS</div>
+          <div class="tl-metric">AR YoY +27%，營收 YoY +44% → AR 增長「低於」營收，相對健康</div>
+          <div class="tl-logic">🟡 尚可：應收帳款 YoY +27% 低於營收 +44%，代表回款速度尚可。AR 天數 64 天，QoQ 持平，非體質惡化</div>
+        </div>
+        <div class="tl-value" style="color:var(--yellow)">+27% vs +44%</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-yellow"></div>
+        <div class="tl-content">
+          <div class="tl-company">DELL</div>
+          <div class="tl-metric">AR QoQ +47%（US$176億→US$259億），應收天數 45 天（+5天）</div>
+          <div class="tl-logic">🟡 留意：應收帳款大幅增加，與 AI Server 大型企業客戶出貨條件改變有關。後續應追蹤是否逾期帳款增加，或僅係出貨時點影響</div>
+        </div>
+        <div class="tl-value" style="color:var(--yellow)">+47% QoQ</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-green"></div>
+        <div class="tl-content">
+          <div class="tl-company">LENOVO</div>
+          <div class="tl-metric">AR 天數雖上升 5 天，但逾期應收帳款金額下降</div>
+          <div class="tl-logic">✅ 健康：逾期應收帳款下降，代表帳面 AR 增加係出貨時點或營收結構影響，非收款惡化的訊號</div>
+        </div>
+        <div class="tl-value" style="color:var(--green)">逾期款↓</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-green"></div>
+        <div class="tl-content">
+          <div class="tl-company">HP Inc.</div>
+          <div class="tl-metric">AR US$61億，應收天數 38 天（+5天 QoQ），YoY 增長與營收相符</div>
+          <div class="tl-logic">✅ 健康：AR 天數 38 天屬業界合理水準，YoY 增長與營收成長同步，無異常應收款累積風險</div>
+        </div>
+        <div class="tl-value" style="color:var(--green)">38天 ✓</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="font-size:0.95rem;margin-bottom:14px">⚡ 其他重要風險提示</div>
+    <div class="tl-grid" style="gap:10px">
+      <div class="tl-item">
+        <div class="tl-dot tl-yellow"></div>
+        <div class="tl-content">
+          <div class="tl-company">全產業</div>
+          <div class="tl-metric">貿易關稅風險：美國關稅政策不確定性</div>
+          <div class="tl-logic">🟡 所有廠商均面臨美國關稅政策波動風險，HP 本季明確提及貿易相關成本上升導致 Printing 毛利率下滑。Dell、ASUS 供應鏈佈局多元化可部分抵禦</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-yellow"></div>
+        <div class="tl-content">
+          <div class="tl-company">ASUS</div>
+          <div class="tl-metric">毛利率連續下滑：年減 1.7pts</div>
+          <div class="tl-logic">🟡 ASUS 毛利率從去年 15.5% 降至今年 13.8%，主因伺服器（Enterprise）佔比大增，而 Server 毛利率低於消費電子。若 Server 佔比持續攀升，需關注整體毛利結構變化</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-red"></div>
+        <div class="tl-content">
+          <div class="tl-company">ASUS</div>
+          <div class="tl-metric">淨利 YoY -23%：獲利能力需關注</div>
+          <div class="tl-logic">🔴 雖然營收創歷史新高，但淨利年減 23%（NT$127億→NT$98億）。主因非業外項目大幅下降（Non-OP YoY -53%），若持續下滑需釐清來源</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-yellow"></div>
+        <div class="tl-content">
+          <div class="tl-company">LENOVO</div>
+          <div class="tl-metric">負債比率 85%，現金佔總資產 9%</div>
+          <div class="tl-logic">🟡 Lenovo 負債比率偏高，現金佔比僅 9%（充裕標準約 25%以上），雖短期穩定但財務彈性較弱，利率上升或信用緊縮時承壓</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-yellow"></div>
+        <div class="tl-content">
+          <div class="tl-company">HP Inc.</div>
+          <div class="tl-metric">GAAP vs Non-GAAP 差距 3.3pts，重組費用連續性存疑</div>
+          <div class="tl-logic">🟡 本季重組費用 US$3.65億，為 Non-GAAP 差距主因。若重組費用逐季重複出現，則 Non-GAAP 將低估真實獲利成本，需追蹤 Q3 是否持續</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot tl-green"></div>
+        <div class="tl-content">
+          <div class="tl-company">DELL</div>
+          <div class="tl-metric">毛利率年減 3.3pts，以量換利策略</div>
+          <div class="tl-logic">✅ Dell 毛利率由 21.6% 降至 18.1%（-3.3pts），係主動以更低毛利搶佔 AI Server 市場份額，費用率同步下降，整體營業利益率反而上升至 8.3%，策略有效</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════
+       第七區：總結
+  ══════════════════════════════════════════ -->
+  <section class="section" id="sec-summary">
+    <div class="section-title">總結分析</div>
+    <div class="section-subtitle">基於四家公司 Q1 Y26 財報數據，對各公司戰略地位與競爭優勢的綜合判斷</div>
+
+    <div class="summary-grid">
+      <!-- ASUS -->
+      <div class="summary-card asus">
+        <div class="summary-card-header">
+          <span class="company-badge badge-asus">ASUS</span>
+          <span class="summary-card-name" style="color:#E2231A">華碩電腦</span>
+          <span style="margin-left:auto;font-size:0.75rem;color:var(--yellow)">★★★☆☆</span>
+        </div>
+        <div class="summary-section-title">核心優勢</div>
+        <ul class="summary-list">
+          <li>營收創歷史新高，YoY +44%，Enterprise 市場爆發性成長 +190%，AI Server 佈局初見成效</li>
+          <li>電競（Gamer）市場地位穩固，佔比 36%，YoY +20%，為全球電競筆電頭部品牌</li>
+          <li>多元化業務結構（Consumer/Gamer/Enterprise），降低單一市場風險</li>
+          <li>財務體質健全，股東權益為正，無槓桿收購債務負擔</li>
+        </ul>
+        <div class="summary-section-title">主要風險</div>
+        <ul class="summary-list">
+          <li>淨利 YoY -23%，毛利率年降 1.7pts，獲利品質需持續觀察</li>
+          <li>存貨天數 122 天、YoY +71%，存貨過高恐帶來跌價風險</li>
+          <li>營運現金流明顯偏低，FCF 未披露，資金流動性透明度不足</li>
+          <li>Server 業務毛利率低，大規模擴張恐持續壓縮整體毛利結構</li>
+        </ul>
+      </div>
+
+      <!-- Dell -->
+      <div class="summary-card dell">
+        <div class="summary-card-header">
+          <span class="company-badge badge-dell">DELL</span>
+          <span class="summary-card-name" style="color:#F97316">戴爾科技</span>
+          <span style="margin-left:auto;font-size:0.75rem;color:var(--green)">★★★★★</span>
+        </div>
+        <div class="summary-section-title">核心優勢</div>
+        <ul class="summary-list">
+          <li>AI Server 爆發成長 +757%，本季 AI 優化伺服器達 US$161億，成功掌握 AI 基礎設施最大商機</li>
+          <li>總營收 US$438億歷史新高，YoY +88%，淨利 +256%，EPS +282%，全面創紀錄</li>
+          <li>FCF US$31.2億（年增 40%），現金生成能力卓越，並返還 US$21億給股東</li>
+          <li>費用率管控優異（費用率 9.5% vs 去年 16.1%），營業利益率提升 3.3pts</li>
+          <li>存貨天數僅 32 天，供應鏈效率最佳</li>
+        </ul>
+        <div class="summary-section-title">主要風險</div>
+        <ul class="summary-list">
+          <li>毛利率 YoY -3.3pts，以量換利策略能否持續需觀察</li>
+          <li>AI Server 業務過度集中，若需求放緩波動較大</li>
+          <li>應收帳款激增（QoQ +47%），大型 AI 客戶付款條件需追蹤</li>
+          <li>負股東權益（歷史槓桿遺留），財務結構高槓桿</li>
+        </ul>
+      </div>
+
+      <!-- Lenovo -->
+      <div class="summary-card lenovo">
+        <div class="summary-card-header">
+          <span class="company-badge badge-lenovo">LENOVO</span>
+          <span class="summary-card-name" style="color:#94A3B8">聯想集團</span>
+          <span style="margin-left:auto;font-size:0.75rem;color:var(--yellow)">★★★★☆</span>
+        </div>
+        <div class="summary-section-title">核心優勢</div>
+        <ul class="summary-list">
+          <li>全球 PC 市占率 24.4%，穩居第一，領先第二名差距創 15 年新高</li>
+          <li>三事業群全線雙位數成長：IDG +24%、ISG +37%、SSG +19%，結構均衡</li>
+          <li>ISG 成功轉虧為盈（營業利益率 3.6%），AI 伺服器訂單積壓 US$210億</li>
+          <li>SSG 高附加值服務達 22.4% 營業利益率，提供穩定高毛利收入來源</li>
+          <li>AI 相關營收佔比 38%（YoY +84%），AI 轉型領先同業</li>
+        </ul>
+        <div class="summary-section-title">主要風險</div>
+        <ul class="summary-list">
+          <li>FCF 本季為負（-US$1.8億），現金流尚未完全轉正</li>
+          <li>負債比率 85%，財務槓桿偏高，利率敏感性較強</li>
+          <li>存貨 YoY +48%，Server 備料風險需持續觀察</li>
+          <li>淨利率僅 2.4%，絕對獲利水準仍低，盈餘薄弱</li>
+        </ul>
+      </div>
+
+      <!-- HP -->
+      <div class="summary-card hp">
+        <div class="summary-card-header">
+          <span class="company-badge badge-hp">HP Inc.</span>
+          <span class="summary-card-name" style="color:#60A5FA">惠普公司</span>
+          <span style="margin-left:auto;font-size:0.75rem;color:var(--yellow)">★★★☆☆</span>
+        </div>
+        <div class="summary-section-title">核心優勢</div>
+        <ul class="summary-list">
+          <li>毛利率 20.9% 為四家最高，Printing 耗材業務（18.3% 營業利益率）提供穩定高毛利現金流</li>
+          <li>PC 事業部連九季年成長，AI PC 佔出貨量 44%（季增 9pts），滲透速度最快</li>
+          <li>Non-GAAP EPS $0.86 優於財測，顯示精確成本控管能力</li>
+          <li>FCF US$7.8億，現金生成穩定；應收帳款健康，天數 38 天</li>
+        </ul>
+        <div class="summary-section-title">主要風險</div>
+        <ul class="summary-list">
+          <li>GAAP 重組費用 US$3.65億（達 Non-GAAP 調整 3.3pts），若持續化則影響真實獲利</li>
+          <li>Printing 硬體出貨量 YoY -7%，列印業務長期結構性萎縮</li>
+          <li>消費 PC 出貨量 YoY -8%，硬體銷量衰退靠漲價支撐</li>
+          <li>傳統 PC 定位，在 AI Server 浪潮中相對缺席（無 Server 業務）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="verdict-box">
+      <div class="verdict-title">🏆 戰略地位綜合裁決</div>
+      <div class="verdict-text">
+        <span class="verdict-highlight">Dell</span> 本季憑藉 AI 基礎設施的壓倒性優勢（AI Server +757% YoY、總營收 US$438億歷史新高）佔據最有利位置，現金流強勁、費用管控精準，已全面進入 AI 超級週期的甜蜜點。<br><br>
+        <span class="verdict-highlight">Lenovo</span> 緊追其後，以均衡的三事業群結構（IDG/ISG/SSG）、全球最高 PC 市占率、ISG 成功轉型為盈，展現強大的執行力與結構韌性。AI 訂單積壓 US$210億代表明確的未來成長能見度。<br><br>
+        <span class="verdict-highlight">ASUS</span> 本季展現了企業轉型的初步成果——Enterprise 業務爆發成長 190%，營收創歷史高點。然而，淨利下滑、存貨大幅累積、現金流偏弱，顯示轉型成本仍高。<span style="color:var(--accent-cyan)">對 ASUS 自身而言，最大優勢在於電競與 AI Server 雙引擎同步發力，且財務結構相對乾淨；當務之急是提升 Server 業務毛利率並改善存貨管理。</span><br><br>
+        <span class="verdict-highlight">HP Inc.</span> 憑藉最高毛利率和穩定的 Printing 耗材現金流，維持穩健基本盤，但缺乏 Server 業務限制了 AI 浪潮的成長空間，長期結構性挑戰仍在。
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// ── Global Config ──────────────────────────────
+Chart.defaults.color = '#8C9BB5';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.padding = 18;
+
+const COLORS = {
+  asus:   'rgba(226, 35, 26, 0.85)',
+  dell:   'rgba(249, 115, 22, 0.85)',
+  lenovo: 'rgba(148, 163, 184, 0.85)',
+  hp:     'rgba(59, 130, 246, 0.85)',
+};
+const COLORS_BORDER = {
+  asus:   '#E2231A',
+  dell:   '#F97316',
+  lenovo: '#94A3B8',
+  hp:     '#3B82F6',
+};
+
+function showTab(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── Chart 1: Overview Margin Chart ──────────────
+new Chart(document.getElementById('overviewMarginChart'), {
+  type: 'bar',
+  data: {
+    labels: ['ASUS (Q1\'26)', 'Dell (Q1 FY27)', 'Lenovo (Q4 FY26)', 'HP (Q2 FY26)'],
+    datasets: [
+      {
+        label: '毛利率 %',
+        data: [13.8, 17.8, 16.4, 20.9],
+        backgroundColor: [COLORS.asus, COLORS.dell, COLORS.lenovo, COLORS.hp],
+        borderRadius: 4,
+      },
+      {
+        label: '營業利益率 % (GAAP)',
+        data: [5.4, 8.3, 4.1, 4.2],
+        backgroundColor: [
+          'rgba(226,35,26,0.35)', 'rgba(249,115,22,0.35)',
+          'rgba(148,163,184,0.35)', 'rgba(59,130,246,0.35)'
+        ],
+        borderRadius: 4,
+      },
+      {
+        label: '淨利率 % (GAAP)',
+        data: [5.0, 7.8, 2.4, 3.1],
+        backgroundColor: [
+          'rgba(226,35,26,0.15)', 'rgba(249,115,22,0.15)',
+          'rgba(148,163,184,0.15)', 'rgba(59,130,246,0.15)'
+        ],
+        borderRadius: 4,
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { position: 'top' }, tooltip: { mode: 'index' } },
+    scales: {
+      y: { beginAtZero: true, ticks: { callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// ── Chart 2: Revenue Bar ──────────────────────────
+new Chart(document.getElementById('revenueBarChart'), {
+  type: 'bar',
+  data: {
+    labels: ['ASUS', 'Dell', 'Lenovo', 'HP Inc.'],
+    datasets: [{
+      label: '季度營收（US$ 十億）',
+      data: [6.0, 43.8, 21.6, 14.4],
+      backgroundColor: [COLORS.asus, COLORS.dell, COLORS.lenovo, COLORS.hp],
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` US$ ${ctx.parsed.y}B` } }
+    },
+    scales: {
+      y: { beginAtZero: true, ticks: { callback: v => 'US$' + v + 'B' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// ── Chart 3: Gross Margin ─────────────────────────
+new Chart(document.getElementById('grossMarginChart'), {
+  type: 'bar',
+  data: {
+    labels: ['ASUS', 'Dell', 'Lenovo', 'HP Inc.'],
+    datasets: [{
+      label: '毛利率 %',
+      data: [13.8, 17.8, 16.4, 20.9],
+      backgroundColor: [COLORS.asus, COLORS.dell, COLORS.lenovo, COLORS.hp],
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, ticks: { callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { grid: { display: false } }
+    }
+  }
+});
+
+// ── Chart 4: Op Margin（GAAP 優先）──────────────────
+new Chart(document.getElementById('opMarginChart'), {
+  type: 'bar',
+  data: {
+    labels: ['ASUS', 'Dell', 'Lenovo', 'HP Inc.'],
+    datasets: [{
+      label: '營業利益率 % (GAAP)',
+      data: [5.4, 8.3, 4.1, 4.2],
+      backgroundColor: [COLORS.asus, COLORS.dell, COLORS.lenovo, COLORS.hp],
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, ticks: { callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { grid: { display: false } }
+    }
+  }
+});
+
+// ── Chart 5: Segment (stacked bar) ────────────────
+new Chart(document.getElementById('segmentChart'), {
+  type: 'bar',
+  data: {
+    labels: ['ASUS', 'Dell', 'Lenovo', 'HP Inc.'],
+    datasets: [
+      {
+        label: 'ASUS: Gamer / Dell: ISG-AI Server / Lenovo: IDG / HP: Commercial PS',
+        data: [36, 37, 68, 54],
+        backgroundColor: [
+          'rgba(226,35,26,0.9)', 'rgba(249,115,22,0.9)',
+          'rgba(148,163,184,0.9)', 'rgba(59,130,246,0.9)'
+        ],
+        borderRadius: 2,
+      },
+      {
+        label: 'ASUS: Enterprise / Dell: ISG-Trad+Storage / Lenovo: ISG / HP: Consumer PS+Supplies',
+        data: [37, 29, 26, 27],
+        backgroundColor: [
+          'rgba(226,35,26,0.55)', 'rgba(249,115,22,0.55)',
+          'rgba(148,163,184,0.55)', 'rgba(59,130,246,0.55)'
+        ],
+        borderRadius: 2,
+      },
+      {
+        label: 'ASUS: Consumer / Dell: CSG Consumer / Lenovo: SSG / HP: Printing Services',
+        data: [27, 4, 12, 19],
+        backgroundColor: [
+          'rgba(226,35,26,0.25)', 'rgba(249,115,22,0.25)',
+          'rgba(148,163,184,0.25)', 'rgba(59,130,246,0.25)'
+        ],
+        borderRadius: 2,
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.parsed.y}%`
+        }
+      }
+    },
+    scales: {
+      x: { stacked: true, grid: { display: false } },
+      y: { stacked: true, beginAtZero: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+    }
+  }
+});
+
+// ── Chart 6: Cash Flow ────────────────────────────
+new Chart(document.getElementById('cashflowChart'), {
+  type: 'bar',
+  data: {
+    labels: ['ASUS', 'Dell', 'Lenovo', 'HP Inc.'],
+    datasets: [
+      {
+        label: 'OCF (US$ 億)',
+        data: [0.96, 40.8, 3.1, 9.3],
+        backgroundColor: [COLORS.asus, COLORS.dell, COLORS.lenovo, COLORS.hp],
+        borderRadius: 4,
+      },
+      {
+        label: 'FCF (US$ 億)',
+        data: [null, 31.2, -1.8, 7.8],
+        backgroundColor: [
+          'rgba(226,35,26,0.3)', 'rgba(249,115,22,0.4)',
+          'rgba(148,163,184,0.4)', 'rgba(59,130,246,0.4)'
+        ],
+        borderRadius: 4,
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { position: 'top' },
+      tooltip: { callbacks: { label: ctx => ` US$${ctx.parsed.y}億` } }
+    },
+    scales: {
+      y: { ticks: { callback: v => 'US$' + v + '億' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// ── Chart 7: Radar ────────────────────────────────
+new Chart(document.getElementById('radarChart'), {
+  type: 'radar',
+  data: {
+    labels: ['毛利率', '營業利益率', '淨利率', 'FCF 效率', '營收成長', '現金流強度'],
+    datasets: [
+      {
+        label: 'ASUS',
+        data: [45, 50, 55, 20, 80, 15],
+        borderColor: COLORS_BORDER.asus, backgroundColor: 'rgba(226,35,26,0.12)', pointBackgroundColor: COLORS_BORDER.asus
+      },
+      {
+        label: 'Dell',
+        data: [62, 90, 90, 98, 100, 100],
+        borderColor: COLORS_BORDER.dell, backgroundColor: 'rgba(249,115,22,0.12)', pointBackgroundColor: COLORS_BORDER.dell
+      },
+      {
+        label: 'Lenovo',
+        data: [58, 38, 25, 30, 70, 40],
+        borderColor: COLORS_BORDER.lenovo, backgroundColor: 'rgba(148,163,184,0.12)', pointBackgroundColor: COLORS_BORDER.lenovo
+      },
+      {
+        label: 'HP Inc.',
+        data: [82, 70, 32, 72, 35, 65],
+        borderColor: COLORS_BORDER.hp, backgroundColor: 'rgba(59,130,246,0.12)', pointBackgroundColor: COLORS_BORDER.hp
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { position: 'top' } },
+    scales: {
+      r: {
+        beginAtZero: true, max: 100,
+        grid: { color: 'rgba(255,255,255,0.08)' },
+        angleLines: { color: 'rgba(255,255,255,0.06)' },
+        ticks: { display: false },
+        pointLabels: { font: { size: 12 }, color: '#8C9BB5' }
+      }
+    }
+  }
+});
+
+// ── Chart 8: YoY Growth ──────────────────────────
+new Chart(document.getElementById('yoyGrowthChart'), {
+  type: 'bar',
+  data: {
+    labels: ['ASUS', 'Dell', 'Lenovo', 'HP Inc.'],
+    datasets: [{
+      label: 'YoY 營收成長率 %',
+      data: [44, 88, 27, 9],
+      backgroundColor: [COLORS.asus, COLORS.dell, COLORS.lenovo, COLORS.hp],
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` +${ctx.parsed.y}% YoY` } }
+    },
+    scales: {
+      y: { beginAtZero: true, ticks: { callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+</script>
+</body>
+</html>
